@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dri"
+version = "0.1.0"
+description = "Discretionary Risk Index — Multi-manager regime indicator from 13F filings"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0 OR GPL-3.0"}
+authors = [{name = "Michael Hoppe"}]
+
+dependencies = [
+    "pandas>=1.3.0",
+    "pyyaml>=5.4",
+    "pyarrow>=6.0.0",
+    "requests>=2.26.0",
+    "lxml>=4.6.0",
+    "numpy>=1.21.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+]
+s3 = [
+    "boto3>=1.20.0",
+]
+all = [
+    "dri[dev,s3]",
+]
+
+[project.scripts]
+dri = "dri.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

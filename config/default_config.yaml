@@ -1,0 +1,46 @@
+# DRI Configuration
+panel:
+  # Initial panel - discretionary macro managers
+  # CIKs validated on SEC EDGAR
+  - cik: "0001536411"
+    name: "Duquesne Family Office"
+    decay_type: "tactical"
+    decay_halflife_days: 30
+
+  # Additional managers to be added (4-7 total required)
+  # Research candidates:
+  # - Ray Dalio / Bridgewater Associates
+  # - Paul Tudor Jones / Tudor Investment Corp
+  # - David Tepper / Appaloosa Management
+  # - Bill Ackman / Pershing Square Capital
+
+normalization:
+  window_years: 5           # Rolling max window
+  method: "rolling_max"     # Options: rolling_max, full_history_max
+
+regime:
+  # Exposure thresholds (0-1 scale)
+  high_exposure: 0.65
+  low_exposure: 0.35
+
+  # Dispersion thresholds
+  high_dispersion: 0.15
+  dispersion_rising_threshold: 0.03
+
+  # Delta thresholds
+  fast_contraction_delta: -0.15
+
+  # Minimum panel size
+  min_panel_members: 4
+
+storage:
+  output_dir: "./data"
+  s3_bucket: null           # Optional: S3 bucket for storage
+  s3_prefix: "dri"
+
+edgar:
+  user_agent: null          # Set via SEC_USER_AGENT env var (required)
+  rate_limit_per_sec: 10
+  retry_attempts: 3
+  retry_delay_sec: 2
+  base_url: "https://www.sec.gov"

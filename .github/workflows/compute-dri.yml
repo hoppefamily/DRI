@@ -1,0 +1,44 @@
+name: Compute DRI
+
+on:
+  schedule:
+    # Run monthly on 20th at 04:00 UTC (13F filings due ~45 days after quarter-end)
+    - cron: '0 4 20 * *'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  compute-dri:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[s3]"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Run DRI pipeline
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: |
+          dri run --config config/default_config.yaml --s3
+
+      - name: Upload snapshots to S3
+        run: |
+          aws s3 sync data/ s3://${{ secrets.S3_BUCKET }}/dri/ \
+            --exclude "*" \
+            --include "*.parquet" \
+            --storage-class STANDARD_IA

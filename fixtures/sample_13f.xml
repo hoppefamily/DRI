@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+    <headerData>
+        <submissionType>13F-HR</submissionType>
+        <filerInfo>
+            <liveTestFlag>LIVE</liveTestFlag>
+            <filer>
+                <credentials>
+                    <cik>0001536411</cik>
+                </credentials>
+            </filer>
+        </filerInfo>
+    </headerData>
+    <formData>
+        <coverPage>
+            <reportCalendarOrQuarter>09-30-2025</reportCalendarOrQuarter>
+            <filingManager>
+                <name>DUQUESNE FAMILY OFFICE LLC</name>
+            </filingManager>
+            <reportType>13F-HR</reportType>
+        </coverPage>
+        <signatureBlock>
+            <name>Stanley Druckenmiller</name>
+            <title>Manager</title>
+        </signatureBlock>
+        <summaryPage>
+            <otherIncludedManagersCount>0</otherIncludedManagersCount>
+            <tableEntryTotal>10</tableEntryTotal>
+            <tableValueTotal>350000</tableValueTotal>
+        </summaryPage>
+        <documents>
+            <document>
+                <informationTable>
+                    <infoTable>
+                        <nameOfIssuer>Apple Inc.</nameOfIssuer>
+                        <titleOfClass>COM</titleOfClass>
+                        <cusip>037833100</cusip>
+                        <value>150000</value>
+                        <shrsOrPrnAmt>
+                            <sshPrnamt>100000</sshPrnamt>
+                            <sshPrnamtType>SH</sshPrnamtType>
+                        </shrsOrPrnAmt>
+                        <investmentDiscretion>SOLE</investmentDiscretion>
+                        <votingAuthority>
+                            <Sole>100000</Sole>
+                            <Shared>0</Shared>
+                            <None>0</None>
+                        </votingAuthority>
+                    </infoTable>
+                    <infoTable>
+                        <nameOfIssuer>Microsoft Corp</nameOfIssuer>
+                        <titleOfClass>COM</titleOfClass>
+                        <cusip>594918104</cusip>
+                        <value>120000</value>
+                        <shrsOrPrnAmt>
+                            <sshPrnamt>80000</sshPrnamt>
+                            <sshPrnamtType>SH</sshPrnamtType>
+                        </shrsOrPrnAmt>
+                        <investmentDiscretion>SOLE</investmentDiscretion>
+                        <votingAuthority>
+                            <Sole>80000</Sole>
+                            <Shared>0</Shared>
+                            <None>0</None>
+                        </votingAuthority>
+                    </infoTable>
+                    <infoTable>
+                        <nameOfIssuer>Meta Platforms Inc</nameOfIssuer>
+                        <titleOfClass>COM CL A</titleOfClass>
+                        <cusip>30303M102</cusip>
+                        <value>80000</value>
+                        <shrsOrPrnAmt>
+                            <sshPrnamt>50000</sshPrnamt>
+                            <sshPrnamtType>SH</sshPrnamtType>
+                        </shrsOrPrnAmt>
+                        <investmentDiscretion>SOLE</investmentDiscretion>
+                        <votingAuthority>
+                            <Sole>50000</Sole>
+                            <Shared>0</Shared>
+                            <None>0</None>
+                        </votingAuthority>
+                    </infoTable>
+                </informationTable>
+            </document>
+        </documents>
+    </formData>
+</edgarSubmission>
