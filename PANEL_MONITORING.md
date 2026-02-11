@@ -391,9 +391,7 @@ dri sensor fetch <CIK> --quarters 5 --name "Test Manager"
 
 ## Questions?
 
-For operational questions about panel monitoring, contact:
-- **Michael Hoppe** - michael@hoppefamily.de
-
-For technical issues with the DRI pipeline:
+For operational or technical questions:
 - See [README.md](README.md) for troubleshooting
 - Check [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for architecture details
+- Open an issue on GitHub for additional support
