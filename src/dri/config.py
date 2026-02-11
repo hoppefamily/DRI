@@ -43,19 +43,19 @@ class Config:
         self._validate(skip_panel_size_check=skip_panel_size_check)
 
     @classmethod
-    def from_file(cls, path: str) -> "Config":
+    def from_file(cls, path: str, skip_panel_size_check: bool = False) -> "Config":
         """Load configuration from YAML file."""
         with open(path, "r") as f:
             user_config = yaml.safe_load(f) or {}
-        return cls(user_config)
+        return cls(user_config, skip_panel_size_check=skip_panel_size_check)
 
     @classmethod
-    def from_default(cls) -> "Config":
+    def from_default(cls, skip_panel_size_check: bool = False) -> "Config":
         """Load default configuration from package."""
         default_path = Path(__file__).parent.parent.parent / "config" / "default_config.yaml"
         if default_path.exists():
-            return cls.from_file(str(default_path))
-        return cls()
+            return cls.from_file(str(default_path), skip_panel_size_check=skip_panel_size_check)
+        return cls(skip_panel_size_check=skip_panel_size_check)
 
     def _merge_config(self, base: Dict, override: Dict) -> Dict:
         """Recursively merge override into base config."""
@@ -91,6 +91,11 @@ class Config:
                 "or SEC_USER_AGENT environment variable"
             )
         self.config["edgar"]["user_agent"] = user_agent
+
+        # Check EDGAR rate limits
+        rate_limit = self.config["edgar"].get("rate_limit_per_sec", 0)
+        if rate_limit <= 0:
+            raise ValueError("edgar.rate_limit_per_sec must be greater than 0")
 
     def __getitem__(self, key: str) -> Any:
         """Allow dict-like access."""

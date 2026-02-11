@@ -91,7 +91,7 @@ Pershing Square Capital (CIK 0001336528):
   SEC EDGAR: https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=...
 
 ================================================================================
-See PANEL_MONITORING.md for guidance on panel member replacement
+See docs/PANEL_MONITORING.md for guidance on panel member replacement
 ================================================================================
 ```
 
@@ -249,7 +249,7 @@ echo "## Panel Rotation - $(date +%Y-%m-%d)
 
 **Added:** [New Manager Name] (CIK [NEW_CIK])
 **Rationale:** [WHY - e.g., 'Discretionary macro, 20Q history, recent AUM $5B']
-" >> PANEL_CHANGES.md
+" >> docs/PANEL_CHANGES.md
 ```
 
 **2. Update configuration:**
@@ -301,7 +301,7 @@ dri show
 **6. Commit changes:**
 
 ```bash
-git add config/default_config.yaml PANEL_CHANGES.md
+git add config/default_config.yaml docs/PANEL_CHANGES.md
 git commit -m "Panel rotation: Replace [Old] with [New]
 
 [Old Manager] has not filed for [X] days. Investigation showed [REASON].
@@ -331,7 +331,7 @@ Maintain a list of vetted replacement candidates. Update quarterly.
 | **Appaloosa Management** | 0001029160 | Macro | $5B | 80+ | David Tepper, tactical |
 | **Baupost Group** | 0001061768 | Value/Macro | $30B | 100+ | Seth Klarman, patient capital |
 | **Viking Global** | 0001103804 | Long/short equity | $24B | 60+ | O. Andreas Halvorsen, flexible |
-| **Soros Fund Management** | 0001029330 | Macro | $25B | 120+ | George Soros family office |
+| **Soros Fund Management** | 0001029330 | Macro | $25B | 120+ | Soros family office |
 
 ### Evaluation Criteria for New Candidates
 
@@ -392,6 +392,6 @@ dri sensor fetch <CIK> --quarters 5 --name "Test Manager"
 ## Questions?
 
 For operational or technical questions:
-- See [README.md](README.md) for troubleshooting
+- See [README.md](../README.md) for troubleshooting
 - Check [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for architecture details
 - Open an issue on GitHub for additional support

@@ -43,7 +43,7 @@ class Storage:
         readings: List[SensorReading],
         cik: str,
         upload_s3: bool = False,
-    ) -> Path:
+    ) -> Optional[Path]:
         """
         Save sensor readings to Parquet.
 
@@ -53,7 +53,7 @@ class Storage:
             upload_s3: If True, upload to S3 after saving locally
 
         Returns:
-            Path to saved file
+            Path to saved file or None when no readings are saved
         """
         if not readings:
             logger.warning(f"No readings to save for CIK {cik}")
@@ -171,6 +171,7 @@ class Storage:
 
         # Import here to avoid circular dependency
         from .aggregator import DRISnapshot
+        row["sensor_readings"] = self._deserialize_sensor_readings(row.get("sensor_readings"))
         return DRISnapshot(**row)
 
     def load_dri_history(self) -> List[DRISnapshot]:
@@ -191,7 +192,9 @@ class Storage:
                     df["asof_date"] = pd.to_datetime(df["asof_date"]).dt.date
 
                 from .aggregator import DRISnapshot
-                snapshot = DRISnapshot(**df.iloc[0].to_dict())
+                row = df.iloc[0].to_dict()
+                row["sensor_readings"] = self._deserialize_sensor_readings(row.get("sensor_readings"))
+                snapshot = DRISnapshot(**row)
                 snapshots.append(snapshot)
             except Exception as e:
                 logger.error(f"Failed to load snapshot {file_path}: {e}")
@@ -229,3 +232,19 @@ class Storage:
             logger.info(f"Downloaded from s3://{self.s3_bucket}/{s3_key}")
         except Exception as e:
             logger.error(f"S3 download failed: {e}")
+
+    def _deserialize_sensor_readings(self, raw_readings) -> List[SensorReading]:
+        """Convert stored sensor readings into SensorReading objects."""
+        if raw_readings is None:
+            return []
+        if isinstance(raw_readings, float) and pd.isna(raw_readings):
+            return []
+        if isinstance(raw_readings, list):
+            readings = []
+            for item in raw_readings:
+                if isinstance(item, SensorReading):
+                    readings.append(item)
+                elif isinstance(item, dict):
+                    readings.append(SensorReading(**item))
+            return readings
+        return []

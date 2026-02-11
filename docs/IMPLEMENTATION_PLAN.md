@@ -69,11 +69,20 @@ dri/
 │   └── default_config.yaml       # Ships with initial panel
 ├── fixtures/
 │   └── sample_13f.xml            # Test data
+├── infra/
+│   └── cloudformation-template.yaml
 ├── pyproject.toml
 ├── LICENSE-APACHE-2.0
 ├── LICENSE-GPL-3.0
 ├── README.md
-└── PHILOSOPHY.md
+└── docs/
+  ├── PHILOSOPHY.md
+  ├── IMPLEMENTATION_PLAN.md
+  ├── PANEL_MONITORING.md
+  ├── PANEL_CHANGES.md
+  ├── QUICKSTART.md
+  ├── CLIENT_INTEGRATION.md
+  └── discretionary_risk_index_dri_multi_manager_regime_indicator.md
 ```
 
 ### pyproject.toml
@@ -171,7 +180,7 @@ edgar:
 
 ### Overview
 
-Build `dri.sensor` — a reusable module that computes **relative disclosed public-equity exposure** for a single manager from 13F filings. This is the building block described in the [druckenmiller-sensor plan](../trading/trading-ideas/druckenmiller_sensor_corrected_open_source_plan.md).
+Build `dri.sensor` — a reusable module that computes **relative disclosed public-equity exposure** for a single manager from 13F filings. This is the building block described in the [druckenmiller-sensor plan](../../trading/trading-ideas/druckenmiller_sensor_corrected_open_source_plan.md).
 
 ### Components
 
@@ -625,6 +634,7 @@ class DRIPipeline:
 - Partial failure handling (one manager missing)
 - Insufficient panel error (3 managers)
 - Cache behavior (fetch vs. load)
+- Dry-run mode (validates but doesn't persist)
 
 ---
 
@@ -728,7 +738,7 @@ jobs:
 
 ### 10. CloudFormation Infrastructure
 
-**File:** `cloudformation-template.yaml`
+**File:** `infra/cloudformation-template.yaml`
 
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
@@ -795,7 +805,7 @@ Outputs:
 ```bash
 aws cloudformation create-stack \
   --stack-name dri-infrastructure \
-  --template-body file://cloudformation-template.yaml \
+  --template-body file://infra/cloudformation-template.yaml \
   --capabilities CAPABILITY_IAM
 ```
 
@@ -1067,8 +1077,8 @@ dri show
 
 ## Documentation
 
-- [PHILOSOPHY.md](PHILOSOPHY.md) — Design rationale and limitations
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — This document
+- [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — Design rationale and limitations
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — This document
 ```
 
 ### PHILOSOPHY.md
@@ -1140,13 +1150,13 @@ Key sections:
 ## References
 
 - **DRI Specification:** [discretionary_risk_index_dri_multi_manager_regime_indicator.md](discretionary_risk_index_dri_multi_manager_regime_indicator.md)
-- **DRI V2 (Japan use case):** [../trading/trading-ideas/discretionary_risk_index_dri_v2.md](../trading/trading-ideas/discretionary_risk_index_dri_v2.md)
-- **Single-Manager Sensor Plan:** [../trading/trading-ideas/druckenmiller_sensor_corrected_open_source_plan.md](../trading/trading-ideas/druckenmiller_sensor_corrected_open_source_plan.md)
+- **DRI V2 (Japan use case):** [../../trading/trading-ideas/discretionary_risk_index_dri_v2.md](../../trading/trading-ideas/discretionary_risk_index_dri_v2.md)
+- **Single-Manager Sensor Plan:** [../../trading/trading-ideas/druckenmiller_sensor_corrected_open_source_plan.md](../../trading/trading-ideas/druckenmiller_sensor_corrected_open_source_plan.md)
 - **SEC EDGAR 13F Documentation:** https://www.sec.gov/divisions/investment/13ffaq.htm
 - **Existing Ecosystem Patterns:**
-  - [market-state-detector](../market-state-detector/) — Config, CLI, testing patterns
-  - [flow-state-monitor](../flow-state-monitor/) — Provider pattern, S3 storage
-  - [ibkr-borrow-collector](../ibkr-borrow-collector/) — GitHub Actions, CloudFormation
+  - [market-state-detector](../../market-state-detector/) — Config, CLI, testing patterns
+  - [flow-state-monitor](../../flow-state-monitor/) — Provider pattern, S3 storage
+  - [ibkr-borrow-collector](../../ibkr-borrow-collector/) — GitHub Actions, CloudFormation
 
 ---
 
