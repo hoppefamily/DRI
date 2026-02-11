@@ -177,4 +177,3 @@ Fields:
 > **Markets break when beliefs stop agreeing — not when prices look bad.**
 
 DRI measures that agreement.
-

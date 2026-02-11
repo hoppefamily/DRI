@@ -165,7 +165,7 @@ dri show
    ```bash
    aws cloudformation create-stack \
      --stack-name dri-infrastructure \
-     --template-body file://cloudformation-template.yaml \
+   --template-body file://infra/cloudformation-template.yaml \
      --capabilities CAPABILITY_NAMED_IAM
    ```
 
@@ -231,7 +231,7 @@ dri/
 
 ## Documentation
 
-- **[README.md](README.md)** — Overview and architecture
+- **[README.md](../README.md)** — Overview and architecture
 - **[PHILOSOPHY.md](PHILOSOPHY.md)** — Design rationale and limitations
 - **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** — Detailed technical plan
 

@@ -47,9 +47,13 @@ class EDGARFetcher:
 
         if not self.user_agent:
             raise ValueError("SEC User-Agent is required")
+        if self.rate_limit <= 0:
+            raise ValueError("edgar.rate_limit_per_sec must be greater than 0")
 
     def _rate_limit_sleep(self):
         """Enforce rate limiting between requests."""
+        if self.rate_limit <= 0:
+            return
         elapsed = time.time() - self.last_request_time
         min_interval = 1.0 / self.rate_limit
         if elapsed < min_interval:
@@ -75,16 +79,26 @@ class EDGARFetcher:
                 response.raise_for_status()
                 return response
             except requests.HTTPError as e:
+                status_code = e.response.status_code if e.response is not None else None
                 # Don't retry on 404 if requested (file doesn't exist)
-                if not retry_on_404 and e.response.status_code == 404:
+                if not retry_on_404 and status_code == 404:
                     raise
                 # Don't retry on other 4xx client errors either
-                if 400 <= e.response.status_code < 500:
+                if status_code is not None and 400 <= status_code < 500 and status_code not in {408, 429}:
                     raise
                 # Retry on 5xx server errors
                 logger.warning(f"Request failed (attempt {attempt + 1}/{self.retry_attempts}): {e}")
                 if attempt < self.retry_attempts - 1:
-                    time.sleep(self.retry_delay * (attempt + 1))
+                    retry_after = None
+                    if status_code == 429 and e.response is not None:
+                        retry_after = e.response.headers.get("Retry-After")
+                    sleep_time = self.retry_delay * (attempt + 1)
+                    if retry_after:
+                        try:
+                            sleep_time = max(sleep_time, float(retry_after))
+                        except ValueError:
+                            pass
+                    time.sleep(sleep_time)
                 else:
                     raise
             except requests.RequestException as e:

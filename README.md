@@ -102,7 +102,7 @@ STALE DATA DETECTED - Panel Review Recommended
 ================================================================================
 ```
 
-See [PANEL_MONITORING.md](PANEL_MONITORING.md) for:
+See [docs/PANEL_MONITORING.md](docs/PANEL_MONITORING.md) for:
 - Investigation workflows
 - Replacement decision criteria
 - Panel rotation procedures
@@ -110,10 +110,10 @@ See [PANEL_MONITORING.md](PANEL_MONITORING.md) for:
 
 ## Documentation
 
-- [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — Detailed implementation guide
-- [PHILOSOPHY.md](PHILOSOPHY.md) — Design rationale and limitations
-- [PANEL_MONITORING.md](PANEL_MONITORING.md) — Operational guide for panel health
-- [PANEL_CHANGES.md](PANEL_CHANGES.md) — History of panel member rotations
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — Detailed implementation guide
+- [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — Design rationale and limitations
+- [docs/PANEL_MONITORING.md](docs/PANEL_MONITORING.md) — Operational guide for panel health
+- [docs/PANEL_CHANGES.md](docs/PANEL_CHANGES.md) — History of panel member rotations
 
 ## License
 

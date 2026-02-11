@@ -308,7 +308,7 @@ class DRIPipeline:
                 logger.warning(f"  SEC ADV: {status['check_urls']['sec_adv']}")
                 logger.warning(f"  SEC EDGAR: {status['check_urls']['sec_edgar']}")
             logger.warning("\n" + "=" * 80)
-            logger.warning("See PANEL_MONITORING.md for guidance on panel member replacement")
+            logger.warning("See docs/PANEL_MONITORING.md for guidance on panel member replacement")
             logger.warning("=" * 80 + "\n")
 
         # Check minimum panel size
