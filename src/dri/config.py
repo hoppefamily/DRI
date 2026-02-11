@@ -37,10 +37,10 @@ DEFAULT_CONFIG = {
 class Config:
     """DRI configuration manager."""
 
-    def __init__(self, config_dict: Optional[Dict[str, Any]] = None):
+    def __init__(self, config_dict: Optional[Dict[str, Any]] = None, skip_panel_size_check: bool = False):
         """Initialize config with optional override dict."""
         self.config = self._merge_config(DEFAULT_CONFIG.copy(), config_dict or {})
-        self._validate()
+        self._validate(skip_panel_size_check=skip_panel_size_check)
 
     @classmethod
     def from_file(cls, path: str) -> "Config":
@@ -67,16 +67,16 @@ class Config:
                 result[key] = value
         return result
 
-    def _validate(self):
+    def _validate(self, skip_panel_size_check: bool = False):
         """Validate configuration values."""
-        # Check panel is not empty
-        if not self.config["panel"]:
-            raise ValueError("Panel must contain at least one manager")
+        # Check panel requirements (skip for sensor-only operations)
+        if not skip_panel_size_check:
+            if not self.config["panel"]:
+                raise ValueError("Panel must contain at least one manager")
 
-        # Check minimum panel size
-        min_size = self.config["regime"]["min_panel_members"]
-        if len(self.config["panel"]) < min_size:
-            raise ValueError(f"Panel size {len(self.config['panel'])} is below minimum {min_size}")
+            min_size = self.config["regime"]["min_panel_members"]
+            if len(self.config["panel"]) < min_size:
+                raise ValueError(f"Panel size {len(self.config['panel'])} is below minimum {min_size}")
 
         # Check thresholds are valid
         regime = self.config["regime"]

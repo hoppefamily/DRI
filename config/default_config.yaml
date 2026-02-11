@@ -1,18 +1,38 @@
 # DRI Configuration
 panel:
-  # Initial panel - discretionary macro managers
-  # CIKs validated on SEC EDGAR
+  # Panel of discretionary macro managers (minimum 4 required)
+  # CIKs validated on SEC EDGAR with consistent 13F-HR filing history
+
   - cik: "0001536411"
     name: "Duquesne Family Office"
+    principal: "Stanley Druckenmiller"
     decay_type: "tactical"
     decay_halflife_days: 30
 
-  # Additional managers to be added (4-7 total required)
-  # Research candidates:
-  # - Ray Dalio / Bridgewater Associates
-  # - Paul Tudor Jones / Tudor Investment Corp
-  # - David Tepper / Appaloosa Management
-  # - Bill Ackman / Pershing Square Capital
+  - cik: "0001336528"
+    name: "Pershing Square Capital Management"
+    principal: "Bill Ackman"
+    decay_type: "structural"
+    decay_halflife_days: 60
+
+  - cik: "0001600319"
+    name: "Bridgewater Advisors"
+    principal: "Ray Dalio"
+    decay_type: "structural"
+    decay_halflife_days: 60
+
+  - cik: "0001040273"
+    name: "Third Point"
+    principal: "Dan Loeb"
+    decay_type: "structural"
+    decay_halflife_days: 60
+
+  # Guy Spier / Aquamarine Zurich
+  - cik: "0001953324"
+    name: "Aquamarine Zurich"
+    principal: "Guy Spier"
+    decay_type: "structural"
+    decay_halflife_days: 60
 
 normalization:
   window_years: 5           # Rolling max window

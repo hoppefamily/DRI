@@ -56,8 +56,13 @@ class EDGARFetcher:
             time.sleep(min_interval - elapsed)
         self.last_request_time = time.time()
 
-    def _make_request(self, url: str) -> requests.Response:
-        """Make HTTP request with rate limiting and retries."""
+    def _make_request(self, url: str, retry_on_404: bool = True) -> requests.Response:
+        """Make HTTP request with rate limiting and retries.
+
+        Args:
+            url: URL to fetch
+            retry_on_404: If False, don't retry on 404 errors (useful when checking if file exists)
+        """
         headers = {
             "User-Agent": self.user_agent,
             "Accept-Encoding": "gzip, deflate",
@@ -69,7 +74,21 @@ class EDGARFetcher:
                 response = requests.get(url, headers=headers, timeout=30)
                 response.raise_for_status()
                 return response
+            except requests.HTTPError as e:
+                # Don't retry on 404 if requested (file doesn't exist)
+                if not retry_on_404 and e.response.status_code == 404:
+                    raise
+                # Don't retry on other 4xx client errors either
+                if 400 <= e.response.status_code < 500:
+                    raise
+                # Retry on 5xx server errors
+                logger.warning(f"Request failed (attempt {attempt + 1}/{self.retry_attempts}): {e}")
+                if attempt < self.retry_attempts - 1:
+                    time.sleep(self.retry_delay * (attempt + 1))
+                else:
+                    raise
             except requests.RequestException as e:
+                # Retry on network errors
                 logger.warning(f"Request failed (attempt {attempt + 1}/{self.retry_attempts}): {e}")
                 if attempt < self.retry_attempts - 1:
                     time.sleep(self.retry_delay * (attempt + 1))
@@ -123,47 +142,40 @@ class EDGARFetcher:
         end_date: Optional[date],
         quarters: Optional[int],
     ) -> List[dict]:
-        """Get list of 13F filing metadata from SEC submissions endpoint."""
-        url = f"{self.base_url}/cgi-bin/browse-edgar"
-        params = {
-            "action": "getcompany",
-            "CIK": cik,
-            "type": "13F-HR",
-            "dateb": "",
-            "owner": "exclude",
-            "count": quarters * 2 if quarters else 100,  # Get extra in case of amendments
-            "output": "atom",
-        }
+        """Get list of 13F filing metadata from SEC JSON submissions API."""
+        # Use SEC data.sec.gov endpoint
+        json_url = f"https://data.sec.gov/submissions/CIK{cik}.json"
 
-        response = self._make_request(url + "?" + "&".join(f"{k}={v}" for k, v in params.items()))
+        response = self._make_request(json_url)
+        data = response.json()
 
-        # Parse Atom feed
-        root = etree.fromstring(response.content)
-        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        # Extract filings from JSON
+        recent_filings = data.get("filings", {}).get("recent", {})
 
         filings = []
-        for entry in root.findall("atom:entry", ns):
-            # Extract filing metadata
-            filing_href = entry.find("atom:link[@type='text/html']", ns)
-            if filing_href is None:
+        for i in range(len(recent_filings.get("form", []))):
+            form = recent_filings["form"][i]
+
+            # Filter for 13F-HR forms only (skip amendments initially)
+            if form != "13F-HR":
                 continue
 
-            link = filing_href.get("href")
-            accession = link.split("accession-number=")[-1] if "accession-number=" in link else ""
+            accession = recent_filings["accessionNumber"][i]
+            filing_date_str = recent_filings["filingDate"][i]
+            filing_date = datetime.strptime(filing_date_str, "%Y-%m-%d").date()
 
-            # Extract filing date from updated field
-            updated = entry.find("atom:updated", ns)
-            if updated is not None:
-                filing_date_str = updated.text.split("T")[0]
-                filing_date = datetime.strptime(filing_date_str, "%Y-%m-%d").date()
-            else:
-                continue
+            report_date_str = recent_filings.get("reportDate", [])[i]
+            report_date = None
+            if report_date_str:
+                report_date = datetime.strptime(report_date_str, "%Y-%m-%d").date()
 
-            # For 13F-HR, report date must be extracted from document (done later)
+            primary_doc = recent_filings.get("primaryDocument", [])[i]
+
             filings.append({
                 "accession": accession,
                 "filing_date": filing_date,
-                "link": link,
+                "report_date": report_date,
+                "primary_document": primary_doc,
             })
 
         # Filter by date range if specified
@@ -174,74 +186,141 @@ class EDGARFetcher:
 
         # Limit to requested quarters
         if quarters:
-            # Keep only non-amendments (one per quarter)
-            seen_quarters = set()
-            unique_filings = []
-            for f in sorted(filings, key=lambda x: x["filing_date"], reverse=True):
-                # Heuristic: skip if accession contains "/A" (amendment)
-                if "/A" in f["accession"]:
-                    continue
-                quarter_key = (f["filing_date"].year, (f["filing_date"].month - 1) // 3)
-                if quarter_key not in seen_quarters:
-                    seen_quarters.add(quarter_key)
-                    unique_filings.append(f)
-                if len(unique_filings) >= quarters:
-                    break
-            filings = unique_filings
+            # Sort by filing date descending and take first N
+            filings = sorted(filings, key=lambda x: x["filing_date"], reverse=True)[:quarters]
 
         return filings
 
     def _fetch_and_parse_filing(self, cik: str, metadata: dict) -> Filing:
         """Fetch and parse a single 13F-HR filing."""
-        # Get filing documents page
+        # Get filing documents using SEC Archives endpoint
         accession_clean = metadata["accession"].replace("-", "")
-        filing_url = f"{self.base_url}/cgi-bin/viewer?action=view&cik={cik}&accession_number={metadata['accession']}"
+        base_url = f"{self.base_url}/Archives/edgar/data/{cik.lstrip('0')}/{accession_clean}"
 
-        # Alternative: construct direct URL to primary document
-        # Most 13F-HRs have primary doc as form13fInfoTable.xml or similar
-        doc_url = f"{self.base_url}/Archives/edgar/data/{cik.lstrip('0')}/{accession_clean}/primary_doc.xml"
-
-        # Try to fetch primary document
+        # First, fetch the index.json to see what files are available
+        index_url = f"{base_url}/index.json"
         try:
-            response = self._make_request(doc_url)
-            xml_content = response.content
-        except:
-            # Fallback: try to find information table XML in index
-            logger.warning(f"Primary doc not found, using filing page: {filing_url}")
-            # For MVP, use simplified approach: look for first XML with "informationTable"
-            # (Full implementation would parse the index page)
-            raise NotImplementedError("Fallback parsing not yet implemented")
+            response = self._make_request(index_url)
+            index_data = response.json()
+            available_files = [item["name"] for item in index_data.get("directory", {}).get("item", [])]
+        except Exception as e:
+            logger.warning(f"Could not fetch index.json, falling back to filename guessing: {e}")
+            available_files = []
+
+        # Build priority list of filenames to try
+        potential_filenames = []
+
+        # Pattern 1: form13f_<report_date>.xml (Duquesne style)
+        if metadata.get("report_date"):
+            report_date_str = metadata["report_date"].strftime("%Y%m%d")
+            potential_filenames.append(f"form13f_{report_date_str}.xml")
+
+        # Pattern 2: Common filenames (case variations)
+        potential_filenames.extend([
+            "infotable.xml",           # Lowercase - Pershing Square, Bridgewater
+            "informationTable.xml",    # Mixed case
+            "form13fInfoTable.xml",
+            "13fInfoTable.xml",
+        ])
+
+        # Filter to only files that actually exist (if we got the index)
+        if available_files:
+            xml_files = [f for f in available_files if f.lower().endswith('.xml') and 'primary' not in f.lower()]
+            # Match our potential filenames against what's actually there
+            matched = [f for f in potential_filenames if f in available_files]
+            if matched:
+                potential_filenames = matched
+            elif xml_files:
+                # If no match, use any XML file that's not primary_doc
+                potential_filenames = xml_files
+                logger.info(f"Using available XML files: {xml_files}")
+
+        # Try each filename (should now be just one if index check worked)
+        xml_content = None
+        successful_filename = None
+
+        for filename in potential_filenames:
+            doc_url = f"{base_url}/{filename}"
+            try:
+                # Don't retry on 404 when trying multiple filenames
+                response = self._make_request(doc_url, retry_on_404=False)
+                # Check if it's actually XML (not HTML)
+                content = response.content
+                if content.strip().startswith(b'<?xml') or b'<informationTable' in content[:1000]:
+                    xml_content = content
+                    successful_filename = filename
+                    logger.info(f"Found holdings data in: {filename}")
+                    break
+                else:
+                    logger.debug(f"Skipping non-XML file: {filename}")
+            except Exception:
+                # Only log if we're actually trying multiple files (fallback mode)
+                if len(potential_filenames) > 1:
+                    logger.debug(f"File not found: {filename}")
+                continue
+
+        if xml_content is None:
+            raise ValueError(
+                f"Could not find holdings XML for filing {metadata['accession']}. "
+                f"Tried: {', '.join(potential_filenames)}"
+            )
 
         # Parse XML
-        filing = self._parse_13f_xml(cik, metadata["filing_date"], xml_content)
+        filing = self._parse_13f_xml(
+            cik=cik,
+            filing_date=metadata["filing_date"],
+            report_date=metadata.get("report_date"),  # May be None
+            xml_content=xml_content
+        )
         return filing
 
-    def _parse_13f_xml(self, cik: str, filing_date: date, xml_content: bytes) -> Filing:
+    def _parse_13f_xml(self, cik: str, filing_date: date, report_date: Optional[date], xml_content: bytes) -> Filing:
         """Parse 13F-HR XML and extract holdings."""
         root = etree.fromstring(xml_content)
 
-        # Extract report period (cover page)
-        # This varies by XML schema version
-        report_date_elem = root.find(".//reportCalendarOrQuarter")
-        if report_date_elem is not None:
-            report_date_str = report_date_elem.text.strip()
-            report_date = datetime.strptime(report_date_str, "%m-%d-%Y").date()
-        else:
-            # Fallback: infer from filing date (13F due 45 days after quarter end)
-            # Estimate quarter end as ~45 days before filing
-            report_date = filing_date  # Simplified for MVP
+        # Register namespace for XPath queries (13F information table schema)
+        nsmap = root.nsmap if root.nsmap else {}
+        # Handle default namespace
+        if None in nsmap:
+            nsmap['n1'] = nsmap.pop(None)
+
+        # Use provided report date if available, otherwise try to extract from XML
+        if report_date is None:
+            # Extract report period (cover page)
+            report_date_elem = root.find(".//reportCalendarOrQuarter")
+            if report_date_elem is not None:
+                report_date_str = report_date_elem.text.strip()
+                report_date = datetime.strptime(report_date_str, "%m-%d-%Y").date()
+            else:
+                # Fallback: use filing date
+                report_date = filing_date
 
         # Extract holdings from informationTable
+        # Use namespace-aware or local-name() based queries
         holdings = []
-        info_tables = root.findall(".//infoTable")
+
+        # Try with namespace first
+        if nsmap:
+            ns_prefix = list(nsmap.keys())[0]
+            info_tables = root.findall(f".//{{{nsmap[ns_prefix]}}}infoTable")
+        else:
+            # Fall back to local-name() for namespace-agnostic search
+            info_tables = root.xpath(".//*[local-name()='infoTable']")
 
         for info_table in info_tables:
-            # Extract fields
-            name_elem = info_table.find(".//nameOfIssuer")
-            cusip_elem = info_table.find(".//cusip")
-            value_elem = info_table.find(".//value")
-            shares_elem = info_table.find(".//shrsOrPrnAmt/sshPrnamt")
-            type_elem = info_table.find(".//shrsOrPrnAmt/sshPrnamtType")
+            # Extract fields (namespace-agnostic using local-name)
+            name_elem = info_table.xpath(".//*[local-name()='nameOfIssuer']")
+            cusip_elem = info_table.xpath(".//*[local-name()='cusip']")
+            value_elem = info_table.xpath(".//*[local-name()='value']")
+            shares_elem = info_table.xpath(".//*[local-name()='sshPrnamt']")
+            type_elem = info_table.xpath(".//*[local-name()='sshPrnamtType']")
+
+            # xpath returns lists, extract first element
+            name_elem = name_elem[0] if name_elem else None
+            cusip_elem = cusip_elem[0] if cusip_elem else None
+            value_elem = value_elem[0] if value_elem else None
+            shares_elem = shares_elem[0] if shares_elem else None
+            type_elem = type_elem[0] if type_elem else None
 
             if None in [name_elem, cusip_elem, value_elem, shares_elem]:
                 logger.warning("Incomplete holding entry, skipping")
@@ -258,6 +337,16 @@ class EDGARFetcher:
 
         # Compute total value
         total_value = sum(h.value for h in holdings)
+
+        # Data quality validation: Flag suspicious outliers
+        # Typical discretionary macro managers: $500M - $50B AUM
+        # Flag if total_value > $100B (100,000,000K) as potential unit error
+        if total_value > 100_000_000:
+            logger.warning(
+                f"Suspicious 13F total value detected: ${total_value:,.0f}K (${total_value/1_000:,.1f}M). "
+                f"This is likely a unit conversion error in the filing. "
+                f"Expected range: $500M - $50B for typical macro managers."
+            )
 
         return Filing(
             cik=cik,

@@ -24,6 +24,7 @@ class SensorReading:
     days_since_snapshot: int
     effective_exposure: float      # Decay-adjusted (0-1 scale)
     rolling_max_5y: float
+    filing_status: str = "CURRENT"  # CURRENT, PENDING, LATE_MINOR, LATE_MODERATE, INACTIVE
 
 
 class ManagerSensor:
@@ -57,19 +58,40 @@ class ManagerSensor:
 
         df = df.sort_values("report_date").reset_index(drop=True)
 
-        # Compute rolling max
+        # Apply outlier correction: values >$100B likely have 1000x unit error
+        # $100B = 100,000,000K (in thousands)
+        OUTLIER_THRESHOLD = 100_000_000  # $100B in thousands
+        df["corrected_value"] = df["total_value"].apply(
+            lambda x: x / 1000 if x > OUTLIER_THRESHOLD else x
+        )
+
+        # Log any corrections
+        outliers = df[df["total_value"] > OUTLIER_THRESHOLD]
+        if not outliers.empty:
+            for _, row in outliers.iterrows():
+                logger.warning(
+                    f"Correcting outlier value: {row['report_date']} "
+                    f"${row['total_value']:,.0f}K -> ${row['corrected_value']:,.0f}K "
+                    f"(likely 1000x unit error in SEC filing)"
+                )
+
+        # Compute rolling max using corrected values
         if self.method == "rolling_max":
             # Rolling max over window_years
             window_quarters = self.window_years * 4
-            df["rolling_max"] = df["total_value"].rolling(
+            df["rolling_max"] = df["corrected_value"].rolling(
                 window=window_quarters,
                 min_periods=1,
             ).max()
         elif self.method == "full_history_max":
             # Expanding max (full history)
-            df["rolling_max"] = df["total_value"].expanding().max()
+            df["rolling_max"] = df["corrected_value"].expanding().max()
         else:
             raise ValueError(f"Unknown normalization method: {self.method}")
+
+        # Also use corrected values for exposure calculation
+        df["total_value"] = df["corrected_value"]
+        df = df.drop(columns=["corrected_value"])
 
         # Compute exposure index (0-100)
         df["exposure_index"] = (df["total_value"] / df["rolling_max"]) * 100
@@ -155,7 +177,7 @@ class ManagerSensor:
             name=name,
             asof_quarter_end=filing.report_date,
             filing_date=filing.filing_date,
-            total_13f_value=filing.total_value,
+            total_13f_value=row["total_value"],  # Use corrected value from dataframe
             exposure_index=row["exposure_index"],
             delta_exposure=row.get("delta_exposure", 0.0),
             days_since_snapshot=days_since,

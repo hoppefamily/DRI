@@ -1,6 +1,6 @@
 """Multi-manager DRI aggregation."""
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Dict, List, Optional
 
@@ -21,7 +21,8 @@ class DRISnapshot:
     dispersion_spread: float       # max - min (robustness check)
     regime_state: str              # RegimeState enum value
     panel_members: List[str]       # CIK list
-    companion_signals: Dict        # Reserved for future (JGB yield, etc.)
+    sensor_readings: List[SensorReading] = field(default_factory=list)  # Individual manager readings
+    companion_signals: Optional[Dict] = None  # Reserved for future (JGB yield, etc.)
 
 
 class DRIAggregator:
@@ -121,5 +122,6 @@ class DRIAggregator:
             dispersion_spread=spread,
             regime_state=regime_state or "Unknown",
             panel_members=panel_ciks,
-            companion_signals={},
+            sensor_readings=readings,
+            companion_signals=None,
         )

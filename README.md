@@ -87,10 +87,33 @@ dri show
 | **Risk OFF** | Low median, low dispersion — managers aligned on caution |
 | **Panic / Reset** | Fast contraction + dispersion spike — rapid de-risking |
 
+## Panel Monitoring
+
+The DRI pipeline automatically monitors panel member filing status:
+
+- **Staleness detection:** Warns when filings are >120 days old
+- **Status classification:** CURRENT → PENDING → LATE_MINOR → LATE_MODERATE → INACTIVE
+- **Automatic alerts:** Pipeline output includes investigation links when action needed
+
+**When you see warnings:**
+```
+================================================================================
+STALE DATA DETECTED - Panel Review Recommended
+================================================================================
+```
+
+See [PANEL_MONITORING.md](PANEL_MONITORING.md) for:
+- Investigation workflows
+- Replacement decision criteria
+- Panel rotation procedures
+- Vetted candidate manager pool
+
 ## Documentation
 
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — Detailed implementation guide
 - [PHILOSOPHY.md](PHILOSOPHY.md) — Design rationale and limitations
+- [PANEL_MONITORING.md](PANEL_MONITORING.md) — Operational guide for panel health
+- [PANEL_CHANGES.md](PANEL_CHANGES.md) — History of panel member rotations
 
 ## License
 

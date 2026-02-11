@@ -24,7 +24,21 @@ def setup_logging(verbose: bool = False):
 
 def cmd_sensor_fetch(args):
     """Fetch 13F filings for a manager."""
-    config = Config.from_file(args.config) if args.config else Config.from_default()
+    # Skip panel size validation for single sensor operations
+    if args.config:
+        config = Config.from_file(args.config)
+        config._validate(skip_panel_size_check=True)
+    else:
+        config = Config(skip_panel_size_check=True)
+        # Load default config manually without validation
+        from pathlib import Path
+
+        import yaml
+        default_path = Path(__file__).parent.parent.parent / "config" / "default_config.yaml"
+        if default_path.exists():
+            with open(default_path, "r") as f:
+                user_config = yaml.safe_load(f) or {}
+            config = Config(user_config, skip_panel_size_check=True)
     edgar = EDGARFetcher(config.config)
     storage = Storage(config.config)
 
@@ -59,7 +73,22 @@ def cmd_sensor_fetch(args):
 
 def cmd_sensor_show(args):
     """Show latest sensor reading for a manager."""
-    config = Config.from_file(args.config) if args.config else Config.from_default()
+    # Skip panel size validation for single sensor operations
+    if args.config:
+        config = Config.from_file(args.config)
+        config._validate(skip_panel_size_check=True)
+    else:
+        config = Config(skip_panel_size_check=True)
+        # Load default config manually without panel validation
+        from pathlib import Path
+
+        import yaml
+        default_path = Path(__file__).parent.parent.parent / "config" / "default_config.yaml"
+        if default_path.exists():
+            with open(default_path, "r") as f:
+                user_config = yaml.safe_load(f) or {}
+            config = Config(user_config, skip_panel_size_check=True)
+
     storage = Storage(config.config)
 
     sensor_history = storage.load_sensor_history(args.cik)
