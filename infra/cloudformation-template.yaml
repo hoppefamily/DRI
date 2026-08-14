@@ -9,7 +9,7 @@ Parameters:
 
   GitHubRepo:
     Type: String
-    Default: dri
+    Default: DRI
     Description: GitHub repository name
 
   BucketNamePrefix:
@@ -45,6 +45,20 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # Account-wide singleton: only one OIDC provider per issuer URL is allowed.
+  # If another stack in this account already creates it, import it instead.
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      Tags:
+        - Key: Project
+          Value: DRI
+        - Key: ManagedBy
+          Value: CloudFormation
+
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:
@@ -54,7 +68,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Federated: !Sub 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+              Federated: !Ref GitHubOIDCProvider
             Action: 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringEquals:
@@ -122,5 +136,4 @@ Outputs:
       2. S3_BUCKET: ${DRIBucket}
       3. SEC_USER_AGENT: YourCompany your@email.com
 
-      Then configure the OIDC provider:
-      https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
+      The GitHub OIDC provider is created by this stack — no manual setup needed.

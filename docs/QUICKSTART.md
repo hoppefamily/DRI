@@ -157,7 +157,10 @@ dri show
 **Prerequisites:**
 - AWS account with CLI configured
 - GitHub repository created
-- OIDC provider set up in AWS
+
+The GitHub OIDC provider is created by the CloudFormation stack. It is
+account-wide, so if one already exists for `token.actions.githubusercontent.com`,
+import it instead of letting the stack create a second one.
 
 **Steps:**
 
