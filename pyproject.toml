@@ -7,7 +7,7 @@ name = "dri"
 version = "0.1.0"
 description = "Discretionary Risk Index — Multi-manager regime indicator from 13F filings"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = {text = "Apache-2.0 OR GPL-3.0"}
 authors = [{name = "Michael Hoppe"}]
 
