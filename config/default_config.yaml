@@ -55,7 +55,7 @@ regime:
 
 storage:
   output_dir: "./data"
-  s3_bucket: "dri-data-257759738555"
+  s3_bucket: "dri-data-314240412530"
   s3_prefix: "dri"
 
 edgar:
